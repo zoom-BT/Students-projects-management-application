@@ -1,19 +1,56 @@
-# Frontend Dockerfile
-FROM node:18-alpine
+# Dockerfile pour Next.js
+FROM node:18-alpine AS base
 
+# Dépendances seulement
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copier les fichiers de dépendances
-COPY package*.json ./
-
-# Installer les dépendances
+# Copier les fichiers de package
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copier le reste du code
+# Builder l'application
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Exposer le port
+# Désactiver la télémétrie Next.js pendant le build
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Build l'application
+RUN npm run build
+
+# Image de production
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copier les fichiers nécessaires
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Démarrer l'application en mode développement
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]
+
+# Pour le développement, utiliser:
+# FROM base AS dev
+# WORKDIR /app
+# COPY package.json package-lock.json* ./
+# RUN npm ci
+# COPY . .
+# EXPOSE 3000
+# CMD ["npm", "run", "dev"]

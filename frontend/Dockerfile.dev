@@ -1,0 +1,16 @@
+# Dockerfile pour le développement Next.js
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Installer les dépendances
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copier le reste des fichiers
+COPY . .
+
+EXPOSE 3000
+
+# Démarrer en mode développement
+CMD ["npm", "run", "dev"]
