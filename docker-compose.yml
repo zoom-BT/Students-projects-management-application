@@ -45,7 +45,7 @@ services:
     networks:
       - pm_network
 
-  # Frontend React
+  # Frontend Next.js
   frontend:
     build:
       context: ./frontend
@@ -53,7 +53,7 @@ services:
     container_name: pm_frontend
     restart: unless-stopped
     environment:
-      VITE_API_URL: http://localhost:5000/api
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
     ports:
       - "3000:3000"
     depends_on:
@@ -61,6 +61,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next
     networks:
       - pm_network
 
